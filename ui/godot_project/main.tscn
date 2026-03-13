@@ -1,0 +1,61 @@
+[gd_scene load_steps=6 format=3 uid="uid://cx4x2xhg2w1w"]
+
+[ext_resource type="Script" path="res://http_client.gd" id="1_http"]
+[ext_resource type="Script" path="res://board_renderer.gd" id="2_board"]
+[ext_resource type="Script" path="res://agent_visualizer.gd" id="3_vis"]
+[ext_resource type="Script" path="res://jungle_environment.gd" id="4_jungle"]
+
+[sub_resource type="Environment" id="Environment_jungle"]
+background_mode = 1
+background_color = Color(0.06, 0.12, 0.05, 1)
+ambient_light_source = 2
+ambient_light_color = Color(0.3, 0.45, 0.25, 1)
+ambient_light_energy = 0.7
+fog_enabled = true
+fog_light_color = Color(0.25, 0.4, 0.2, 1)
+fog_density = 0.012
+
+[node name="Main" type="Node3D"]
+
+[node name="HttpClient" type="HTTPRequest" parent="."]
+script = ExtResource("1_http")
+
+[node name="BoardRenderer" type="Node3D" parent="."]
+script = ExtResource("2_board")
+
+[node name="JungleEnv" type="Node3D" parent="."]
+script = ExtResource("4_jungle")
+
+[node name="Camera3D" type="Camera3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 0.6, 0.8, 0, -0.8, 0.6, 3.5, 10, 10)
+current = true
+fov = 55.0
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("Environment_jungle")
+
+[node name="SunLight" type="DirectionalLight3D" parent="."]
+transform = Transform3D(0.866025, -0.433013, 0.25, 0, 0.5, 0.866025, -0.5, -0.75, 0.433013, 0, 15, 0)
+light_color = Color(1, 0.95, 0.8, 1)
+light_energy = 1.2
+shadow_enabled = true
+
+[node name="FillLight" type="DirectionalLight3D" parent="."]
+transform = Transform3D(-0.5, 0.7, -0.5, 0, 0.6, 0.8, 0.866, 0.4, -0.3, 0, 5, -5)
+light_color = Color(0.6, 0.75, 0.9, 1)
+light_energy = 0.4
+
+[node name="JungleFloor" type="CSGBox3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 3.5, -0.55, 3.5)
+size = Vector3(30, 0.5, 30)
+
+[node name="UI" type="CanvasLayer" parent="."]
+
+[node name="AgentVisualizer" type="Control" parent="UI"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("3_vis")
