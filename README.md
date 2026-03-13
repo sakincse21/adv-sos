@@ -136,8 +136,8 @@ This runs 5 quick matches by default. Edit the file to configure 100+ match expe
 
 | Document | Description |
 |----------|-------------|
-| [GAME_ENGINE.md](GAME_ENGINE.md) | Game state, board, rules, move generation — full code explanation |
-| [AI_ALGORITHMS.md](AI_ALGORITHMS.md) | Minimax with Alpha-Beta and MCTS — algorithm theory + code walkthrough |
-| [SIMULATION.md](SIMULATION.md) | Match engine, experiment runner, statistics tracking |
-| [GODOT_VISUALIZATION.md](GODOT_VISUALIZATION.md) | 3D UI, character models, animations, jungle environment |
-| [API_REFERENCE.md](API_REFERENCE.md) | FastAPI endpoints for Godot–Python communication |
+| [GAME_ENGINE.md](docs/GAME_ENGINE.md) | Game state, board, rules, move generation — full code explanation |
+| [AI_ALGORITHMS.md](docs/AI_ALGORITHMS.md) | Minimax with Alpha-Beta and MCTS — algorithm theory + code walkthrough |
+| [SIMULATION.md](docs/SIMULATION.md) | Match engine, experiment runner, statistics tracking |
+| [GODOT_VISUALIZATION.md](docs/GODOT_VISUALIZATION.md) | 3D UI, character models, animations, jungle environment |
+| [API_REFERENCE.md](docs/API_REFERENCE.md) | FastAPI endpoints for Godot–Python communication |
