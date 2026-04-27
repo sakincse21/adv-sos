@@ -616,4 +616,3 @@ func _spawn_symbol(r, c, val, tile_data):
 			var tw = create_tween()
 			tw.tween_property(mesh, "position", Vector3(c, 0.12, r), 0.5).set_trans(Tween.TRANS_BOUNCE).set_ease(Tween.EASE_OUT)
 		tile_data.piece = mesh
-

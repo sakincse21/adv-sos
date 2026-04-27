@@ -21,3 +21,7 @@ config/features=PackedStringArray("4.6", "Forward Plus")
 [dotnet]
 
 project/assembly_name="Advanced SOS Game 3D"
+
+[rendering]
+
+textures/vram_compression/import_etc2_astc=true
