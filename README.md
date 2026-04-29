@@ -153,7 +153,13 @@ Runs batch tests, prints win/loss/draw stats.
 
 ---
 
+
+
 ## Visualization
+
+## 📹 [Watch Gameplay Video](https://drive.google.com/file/d/14FC5GrKcn7LKJWtb-WoMCQAhcNA98Z8H/view?usp=sharing)
+
+
 
 ![Game Board](./sos-ui.png)
 
