@@ -2,7 +2,6 @@ import math
 import random
 import time
 
-from .minimax_agent import MinimaxAgent
 from ..game_engine.board import get_empty_cells
 from ..game_engine.move_generator import generate_legal_moves
 from ..game_engine.rules import apply_move, check_sos, is_terminal

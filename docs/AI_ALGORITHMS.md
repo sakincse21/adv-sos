@@ -11,6 +11,7 @@ This document explains the two AI agents in `backend/ai_agents/`: the Minimax ag
 ### Algorithm Overview
 
 Minimax is a **depth-limited adversarial search** algorithm. It assumes both players play optimally:
+
 - **Maximizing player** (self) picks the move with the highest evaluation.
 - **Minimizing player** (opponent) picks the move with the lowest evaluation.
 
@@ -27,11 +28,11 @@ Minimax is a **depth-limited adversarial search** algorithm. It assumes both pla
 
 ### Key Parameters
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `player_id` | — | Which player this agent controls (`PLAYER_1` or `PLAYER_2`) |
-| `max_depth` | `4` | How many moves ahead to search |
-| `nodes_explored` | `0` | Counter reset each turn for statistics |
+| Parameter        | Default | Description                                                 |
+| ---------------- | ------- | ----------------------------------------------------------- |
+| `player_id`      | —       | Which player this agent controls (`PLAYER_1` or `PLAYER_2`) |
+| `max_depth`      | `4`     | How many moves ahead to search                              |
+| `nodes_explored` | `0`     | Counter reset each turn for statistics                      |
 
 ### Heuristic Evaluation Function
 
@@ -44,12 +45,12 @@ score = 10 * (my_score - opp_score)
        + 1 * center_control
 ```
 
-| Component | Weight | Meaning |
-|-----------|--------|---------|
-| **Score difference** | ×10 | Most important — actual points scored |
-| **My potential SOS** | ×3 | Empty cells where I could form SOS next turn |
-| **Opponent potential SOS** | ×2 | Penalize opponent's opportunities (negative weight) |
-| **Center control** | ×1 | Number of non-empty cells in the middle 4×4 zone |
+| Component                  | Weight | Meaning                                             |
+| -------------------------- | ------ | --------------------------------------------------- |
+| **Score difference**       | ×10    | Most important — actual points scored               |
+| **My potential SOS**       | ×3     | Empty cells where I could form SOS next turn        |
+| **Opponent potential SOS** | ×2     | Penalize opponent's opportunities (negative weight) |
+| **Center control**         | ×1     | Number of non-empty cells in the middle 4×4 zone    |
 
 **Potential SOS calculation:** For every empty cell, the agent temporarily places `S` and `O`, checking if either would form an SOS via `check_sos()`. This tells us how many "one-move-away" SOS opportunities exist.
 
@@ -59,7 +60,7 @@ score = 10 * (my_score - opp_score)
 def max_value(self, state, alpha, beta, depth):
     # alpha = best guaranteed value for MAX so far
     # beta  = best guaranteed value for MIN so far
-    
+
     for each move:
         v = max(v, min_value(next_state, alpha, beta, depth+1))
         if v >= beta:
@@ -134,11 +135,11 @@ MCTS is a **simulation-based search** algorithm. Instead of evaluating positions
 UCT = (wins / visits) + C × √(ln(parent_visits) / visits)
 ```
 
-| Component | Meaning |
-|-----------|---------|
-| `wins / visits` | **Exploitation** — prefer moves that have won often |
+| Component                           | Meaning                                                     |
+| ----------------------------------- | ----------------------------------------------------------- |
+| `wins / visits`                     | **Exploitation** — prefer moves that have won often         |
 | `C × √(ln(parent_visits) / visits)` | **Exploration** — prefer moves that haven't been tried much |
-| `C = 1.4` | Exploration constant (tunable) |
+| `C = 1.15`                          | Exploration constant (balances exploitation/exploration)    |
 
 **Opponent perspective handling:** When selecting from a node where it's the opponent's turn, the exploit term is inverted (`1.0 - exploit`) to correctly model adversarial play.
 
@@ -157,53 +158,86 @@ class MCTSNode:
 
 ### Key Parameters
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `player_id` | — | Which player this agent controls |
-| `iterations` | `1000` | Max number of MCTS iterations per move |
-| `exploration_constant` | `1.4` | The `C` value in UCT formula |
-| `time_limit` | `1.9s` | Hard time cap per decision |
+| Parameter              | Default | Description                            |
+| ---------------------- | ------- | -------------------------------------- |
+| `player_id`            | —       | Which player this agent controls       |
+| `iterations`           | `2000`  | Max number of MCTS iterations per move |
+| `exploration_constant` | `1.15`  | The `C` value in UCT formula           |
+| `time_limit`           | `1.5s`  | Hard time cap per decision             |
+| `max_branching`        | `12`    | Top N moves considered (move pruning)  |
+| `rollout_depth`        | `10`    | Max depth of simulation playouts       |
+
+### Move Pruning
+
+To manage the high branching factor (~256 moves), MCTS prunes to the **top 12 moves** using a heuristic scoring function:
+
+```
+move_score =
+  -1.0                        for SKIP moves
+  12 + 4·nSOS                 if SOS would be formed
+  +3.0                        if move matches forced cell
+  0.35·(4.5 - d_center)       center proximity bonus
+  +0.4 (S), +0.25 (O), -0.2 (X)  symbol preference
+```
+
+Where `d_center = |r - 3.5| + |c - 3.5|` (Manhattan distance from board center).
 
 ### Simulation Strategy
 
-The simulation phase uses **uniform random playouts**:
+From the expanded node, **heuristic-guided weighted random playouts** are conducted:
 
 ```python
-while not is_terminal(sim_state):
+while rollout_depth < max_depth and not is_terminal(sim_state):
     moves = generate_legal_moves(sim_state)
-    m = random.choice(moves)
+    scored_moves = [_score_move(m) for m in moves]
+    m = weighted_random_choice(scored_moves)  # Top candidates preferred
     sim_state = apply_move(sim_state, m)
+    rollout_depth += 1
 ```
 
-Random play is simple but effective — with enough iterations (500–2000), the law of large numbers produces accurate win-rate estimates.
+After the rollout completes, a heuristic evaluation estimates the value:
+
+```
+value = 0.5 + (Δscore / 40) + 0.04·threats_mine - 0.05·threats_opp
+```
+
+This hybrid approach (heuristic-guided simulation) produces better play than pure random rollouts.
 
 ### Backpropagation Scoring
 
+The post-rollout evaluation value is backpropagated up the tree. Visits and wins are updated:
+
 ```python
-diff = sim_state.score_p1 - sim_state.score_p2
-if self.player_id == PLAYER_1:
-    if diff > 0: win_score = 1     # P1 won
-    elif diff < 0: win_score = 0   # P1 lost
-    else: win_score = 0.5          # Draw
+node.visits += 1
+node.wins += value  # Sum of heuristic values (0.0–1.0)
 ```
 
-Binary win/loss scoring (with 0.5 for draws) is propagated up every ancestor node.
+Standard UCB/UCT selection then uses this win/visit ratio to balance exploration and exploitation.
 
 ### Move Selection
 
-After all iterations complete, the agent selects the child with the **most visits** (not highest win rate). This is standard MCTS practice — the most-visited node has the most statistical confidence.
+After the iteration budget is exhausted (either `iterations` reached or `time_limit` exceeded), the agent returns the child with the **highest visit count**:
+
+```python
+best_child = max(root.children, key=lambda c: c.visits)
+return best_child.move
+```
+
+This statistical confidence measure is more robust than selecting by win rate alone.
 
 ---
 
 ## Algorithm Comparison
 
-| Feature | Minimax + Alpha-Beta | MCTS |
-|---------|---------------------|------|
-| **Strategy** | Exhaustive depth-limited search | Statistical simulation sampling |
-| **Evaluation** | Handcrafted heuristic | Random playout outcomes |
-| **Branching** | Prunes bad branches early | Focuses on promising branches |
-| **Strength** | Strong with good heuristic | No domain knowledge needed |
-| **Weakness** | Heuristic quality limits play | Needs many iterations |
-| **Time per move** | ~2 seconds | ~1.5 seconds |
-| **Nodes explored** | 15,000–35,000 | 500–2,000 iterations |
-| **Best at** | Tactical SOS completion | Strategic long-term play |
+| Feature                  | Minimax + Alpha-Beta            | MCTS + Hybrid                          |
+| ------------------------ | ------------------------------- | -------------------------------------- |
+| **Strategy**             | Exhaustive depth-limited search | Statistical simulation + heuristic     |
+| **Evaluation**           | Handcrafted heuristic at leaves | Heuristic-guided playouts + evaluation |
+| **Branching Management** | Alpha-Beta pruning              | Move pruning (top 12) + UCT            |
+| **Time/Move**            | ~2 seconds                      | ~1.5 seconds                           |
+| **Nodes Explored**       | 15,000–35,000                   | 500–2,000 iterations                   |
+| **Opening Phase**        | Weak (limited depth)            | Strong ⭐                              |
+| **Midgame**              | Moderate                        | Strong ⭐                              |
+| **Endgame**              | Strong ⭐                       | Moderate (heuristic-limited)           |
+| **SOS Detection**        | Excellent                       | Good                                   |
+| **Best At**              | Tactical sequences              | Strategic planning                     |

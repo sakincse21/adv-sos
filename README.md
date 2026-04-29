@@ -132,7 +132,7 @@ Runs batch tests, prints win/loss/draw stats.
 
 ### Monte Carlo Tree Search (MCTS)
 
-- **Iterations:** 500–2,000 per move
+- **Iterations:** Up to 2,000 per move (time-limited to 1.5s)
 - **Move Pruning:** Top 12 moves selected by heuristic
 - **Simulation:** Heuristic-guided rollouts (depth ≤10)
 - **Time/Move:** ~1.5 seconds
